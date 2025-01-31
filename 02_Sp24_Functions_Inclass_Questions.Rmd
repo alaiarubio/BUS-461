@@ -1,0 +1,180 @@
+---
+title: "02 - In-class activity on Functions"
+author: "Alaia Rubio Perez"
+date: Created on "2025-01-30"
+output: 
+  html_document:
+    theme: "cerulean"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#### Functional programming in R
+![](https://cdn.prod.website-files.com/654fd3ad88635290d9845b9e/65b2a4432769cc2a82c1bc49_6525256482c9e9a06c7a9d3c%252F65aac29a1b58f299a762826d_FP_Blog.webp)
+
+**Function definition**
+- Functions are created using the function() keyword.   
+- Inside the parentheses, specify the function's arguments (inputs).   
+- The body of the function contains the code that executes when the function is called.   
+- The function returns a value using the return() statement (optional).   
+
+
+
+```{r, eval=FALSE}
+add_numbers <- function(x, y) {
+  result <- x + y
+  return(result)
+}
+```
+
+**Function calling**
+
+- Call a function by using its name followed by parentheses.   
+- Inside the parentheses, provide values for the arguments (if any).   
+- The function executes its code and returns a value (if specified).   
+
+```{r, eval=FALSE}
+sum <- add_numbers(5, 3)  # Calling the function
+print(sum)  # Output: 8
+```
+
+- **Benefits of Using Functions:**    
+  + Reusability: Write code once and use it multiple times.    
+  + Modularity: Break down complex tasks into smaller, manageable functions.    
+  + Abstraction: Hide implementation details, making code easier to understand and maintain.    
+  + Organization: Improve code structure and readability.     
+  + Testing: Test functions independently to ensure correctness.
+  
+## Questions: 
+
+#### Q1. Create a function to create a normalized values vector from the numeric vector var1 
+```{r}
+var1 <- c(28, 80, 22, 9, 5, 38, 16, 4, 86, 90)
+
+fnl<- c(28, 80, 22, 9, 5, 38, 16, 4, 86, 90)
+fnl <-function (input_vec = c()) {
+  return((input_vec - mean(input_vec))/sd(input_vec))
+}
+fnl (c(4,6,8,10))
+fnl(input_vec=c(4,6,8,10))
+
+```
+
+#### Q2. Normalize the mpg (miles per gallon) values in the mtcars dataset using max-min normalization. Store the normalized values in a new column named normalized_mpg.
+- X_normalized = (X - X_min) / (X_max - X_min)
+
+```{r}
+
+fn2 <- function(input_val=c()){
+  min_value <- min(input_val)
+  max_value <- max(input_val)
+  return( (input_val - min_value) / (max_value - min_value) )
+
+}
+
+fn2(c(4,6,8,10))
+```
+
+#### Q3. Write a function in R called normalize_and_categorize that takes the mpg column from the mtcars dataset as input and performs the following operations:
+
+1. **Normalization:** Apply max-min normalization to the mpg values, scaling them to a range between 0 and 1.
+2. **Categorization:** Creates a new categorical variable based on the normalized mpg values, with the following categories:
+  - "Low" if the normalized value is less than 0.33.; 
+  - "Medium" if the normalized value is between 0.33 and 0.66.
+  - "High" if the normalized value is greater than 0.66.
+3. The function should return a data frame with two columns: normalized_mpg (containing the normalized values) and mpg_category (containing the categorical labels).
+
+- **Hint:** Try using a "cut" function. To know more about cut, get help running ?cut
+
+```{r}
+normalize_categorize <- function(input_vec =c()){
+  z_score <- fn2(input_vec)
+  cat_vec <- ifelse(z_score < 0.33, "Low",
+                  ifelse(z_score < 0.66, "Medium", "High")
+                  )
+  data.frame(input_vec , z_score, cat_vec)
+} 
+
+df<- normalize_categorize(mtcars$mpg)
+```
+
+
+```{r}
+normalize_categorize <- function(input_vec =c()){
+  z_score <- fn2(input_vec)
+  print(z_score)
+  cat_vec <- cut(fn2(c(3,5,1,6)), c(0, 0.33, 0.66, 1),  
+  labels = c("Low", "Medium", "High"),
+  include.lowest = T)
+  
+  data.frame(input_vec , z_score, cat_vec)
+} 
+
+df<- normalize_categorize(mtcars$mpg)
+
+
+```
+
+#### Q4. Read the CSV file jokes.csv and display first few records 
+```{r}
+
+jokes <- read.csv ("jokes.csv")
+head(jokes)
+```
+
+### Apply class functions.
+
+- Apply a function to elements: They all apply a specified function to elements of an object (list, vector, matrix, etc.).
+- Simplify repetitive tasks: They automate actions that would otherwise require loops, making code more concise and readable.
+
+- Apply:
+  - Array-oriented: Works with arrays (matrices, multidimensional arrays).
+  - Syntax: apply(array, margin, function)
+  - Margins: Specifies the dimension to apply the function over (1 for rows, 2 for columns, etc.).
+  - Returns: An array with the same dimensions as the input, containing the results of applying the function.
+
+- lapply:
+  - List-oriented: Works with lists and vectors.
+  - Syntax: lapply(list, function)
+  - Returns: A list with the same length as the input, containing the function's results for each element.
+
+- sapply:
+
+  - Simplified output: Similar to lapply, but tries to simplify the result into a vector or matrix if possible.
+  - Syntax: sapply(list, function)
+  - Returns: A vector, matrix, or list, depending on the output of the function and whether simplification is successful.
+  
+```{r}
+# Sample data
+data <- list(a = 1:5, b = c("x", "y", "z"), c = matrix(1:9, nrow = 3))
+
+# Calculate the mean of each list element
+mean_results <- lapply(data, mean)  # Returns a list
+print(mean_results)
+
+# Same as above, but try to simplify the output
+simplified_results <- sapply(data, mean)  # Returns a vector
+print(simplified_results)
+
+
+
+```
+
+- Choose apply for array-based operations.
+- Choose lapply when you always want a list output.
+- Choose sapply for potentially simplified output.
+- For more complex data structures, explore vapply, tapply, mapply, and others.
+
+#### Q5. Extract all the numeric columns of the CO2 dataframe. sapply and is.numeric can help to fetch the columns. 
+
+```{r}
+
+logical_output <- sapply(CO2, FUN=is.numeric)
+head(CO2[logical_output], 3) 
+
+       
+```
+
+#### It's time to install tidyverse and work on tidy format!
