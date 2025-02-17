@@ -1,0 +1,174 @@
+---
+title: "Hw 1"
+author: "Alaia Rubio"
+date: "2025-02-16"
+output: html_document
+---
+```{r}
+#2.	Task: Explore the dataset's structure and initial insights: str(flights), summary(flights), and head(flights). Include all these functions in separate code cells and write your key takeaways from each of these functions.
+
+str(flights)
+
+# shows real-world flights data from NYC airports. The data set shows the flights, airline, plane, airtime, distance of the flight and more. 
+
+# The data has a mix of integers, numeric values, characters and datetime. 
+```
+```{r}
+summary(flights)
+
+# displays the max, min, mean and quartiles for the different values. 
+
+# There are NA values in dep_delay, dep_time, arr_tive, ar_delay and air_time. This could be due to flight cancellations. 
+
+```
+```{r}
+head(flights)
+
+#shows the flight data including the depature and arrivals times, delays as well as destination 
+
+# easy to spot if there were to be any NA due to the table format 
+
+
+```
+
+
+```{r}
+
+#3 Filtering and summarizing: Task: Create a function. Write a function avg_monthly_dep_delay() that takes a carrier as input and calculates the average departure delay for that carrier for each month of the year. The function should return a vector of length 12 with the average delays.
+
+library(nycflights13)
+library(lubridate)
+
+avg_monthy_dep_delay <- function(carrier) {
+  carrier_flights <- flights[flights$carrier == carrier, ]
+  carrier_flights$month <-month(carrier_flights$time_hour)
+  avg_delays <- tapply(carrier_flights$dep_delay, carrier_flights$month, mean, na.rm = TRUE)
+  
+  return(avg_delays)
+}
+
+avg_monthy_dep_delay("AA")
+
+
+```
+
+```{r}
+#4Function & Plot: Task: Write a function plot_monthly_delay_trend() that takes a carrier as input, uses avg_monthly_dep_delay() to calculate the average monthly departure delays, and creates a line plot to visualize the trend of delays over the months. 
+
+plot_monthly_delay_trend <- function(carrier) {
+
+  avg_delays <- avg_monthy_dep_delay(carrier)
+  
+  plot(names(avg_delays), avg_delays, type = "o", col = "blue",
+       xlab = "Month", ylab = "Average Departure Delay (minutes)",
+       main = paste("Monthly Delay Trend for", carrier),
+       ylim = c(min(avg_delays, na.rm = TRUE) - 5, max(avg_delays, na.rm = TRUE) + 5))
+
+  grid()
+}
+
+
+plot_monthly_delay_trend("AA")  
+
+
+```
+
+
+```{r}
+# 5 Function & Plot: Task: Write a function compare_carrier_delays() that takes two carriers as input, calculates their average departure delay for each day of the week, and creates a bar plot to compare the delays side-by-side for each day.
+
+compare_carrier_delays <- function(carrier1, carrier2) {
+  
+  carrier1_flights <- flights[flights$carrier == carrier1, ]
+  carrier2_flights <- flights[flights$carrier == carrier2, ]
+  
+  carrier1_flights$weekday <- wday(carrier1_flights$time_hour, label = FALSE)
+  carrier2_flights$weekday <- wday(carrier2_flights$time_hour, label = FALSE)
+  
+  avg_delays1 <- tapply(carrier1_flights$dep_delay, carrier1_flights$weekday, mean, na.rm = TRUE)
+  avg_delays2 <- tapply(carrier2_flights$dep_delay, carrier2_flights$weekday, mean, na.rm = TRUE)
+  
+  delay_matrix <- rbind(avg_delays1, avg_delays2)
+  rownames(delay_matrix) <- c(carrier1, carrier2)
+
+  barplot(delay_matrix, beside = TRUE, col = c("blue", "red"),
+          names.arg = c("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"),
+          main = paste("Average Departure Delays:", carrier1, "vs", carrier2),
+          xlab = "Day of the Week", ylab = "Avg Departure Delay (min)",
+          legend.text = rownames(delay_matrix), args.legend = list(x = "topright"))
+  
+  grid()
+}
+
+
+compare_carrier_delays("AA", "DL")
+
+
+
+
+```
+
+
+```{r}
+
+#6.Function & Plot: Task: Write a function compare_carrier_delays() that takes two carriers as input, calculates their average departure delay for each day of the week, and creates a bar plot to compare the delays side-by-side for each day.
+
+compare_carrier_delays <- function(carrier1, carrier2) {
+  carrier1_flights <- flights[flights$carrier == carrier1, ]
+  carrier2_flights <- flights[flights$carrier == carrier2, ]
+  
+  carrier1_flights$weekday <- wday(carrier1_flights$time_hour, label = FALSE)
+  carrier2_flights$weekday <- wday(carrier2_flights$time_hour, label = FALSE)
+  
+  avg_delays1 <- tapply(carrier1_flights$dep_delay, carrier1_flights$weekday, mean, na.rm = TRUE)
+  avg_delays2 <- tapply(carrier2_flights$dep_delay, carrier2_flights$weekday, mean, na.rm = TRUE)
+  
+  delay_matrix <- rbind(avg_delays1, avg_delays2)
+  rownames(delay_matrix) <- c(carrier1, carrier2)
+
+  barplot(delay_matrix, beside = TRUE, col = c("blue", "red"),
+          names.arg = c("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"),
+          main = paste("Average Departure Delays:", carrier1, "vs", carrier2),
+          xlab = "Day of the Week", ylab = "Avg Departure Delay (min)",
+          legend.text = rownames(delay_matrix), args.legend = list(x = "topright"))
+  
+  grid()
+}
+
+
+compare_carrier_delays("AA", "DL")  
+```
+```{r}
+#7 Plot: Task: Create a scatter plot to visualize the relationship between 
+
+library(nycflights13)
+
+library(lubridate)
+
+lax_flights <- flights[flights$dest == "LAX", ]
+
+plot(lax_flights$distance, lax_flights$air_time,
+     main = "Distance vs. Air Time for Flights to LAX",
+     xlab = "Distance (miles)", 
+     ylab = "Air Time (minutes)", 
+     col = "blue",pch= 16)
+
+```
+
+
+```{r}
+par(mfrow = c(2, 1))
+
+hist(flights$dep_delay, breaks=50, col= "blue", 
+     xlab= "Departure Delay (minutes)", 
+     main= "Histogram of Departure Delays")
+grid()
+
+hist(flights$arr_delay, breaks=50, col="red",
+     xlab="Arrival Delay (minutes)",
+     main= "Histogram of Arrival Delays")
+grid()
+
+```
+
+
