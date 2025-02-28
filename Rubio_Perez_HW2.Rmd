@@ -1,0 +1,122 @@
+---
+title: "HW2"
+author: "Alaia Rubio"
+date: "2025-02-27"
+output: html_document
+---
+
+```{r}
+library(ggplot2)
+```
+
+
+Q1. Using mpg dataset, create a scatter plot between displ (Displacement) and hwy (Highway mileage)
+
+```{r basic_plot}
+ggplot(data = mpg, mapping = aes(x = displ, y = hwy)) +
+  geom_point()
+
+```
+
+Question 2 on Color and Shape of datapoints 
+- Create scatter plot between displ (on x-axis) and hwy (y-axis), to include different shapes for the datapoints by drv (Drivetrain type) and different color by the class (class type)
+
+
+
+```{r geom_additions}
+ggplot(data = mpg, mapping = aes(x = displ, y = hwy, shape = drv, color = class)) +
+  geom_point()
+
+```
+
+  
+
+Q3. Create a boxplot on the "hwy" mileage. Make sure to use the position argument in the geom_ function and the "outlier.colour" property. The outlier is highlighted in "red" color. 
+- The default statistics of geom_boxplot is statistics. It is embedded in the stat parameter.
+
+```{r boxplot1}
+
+ggplot(data = mpg, aes(x = hwy)) +
+  geom_boxplot(outlier.colour = "red",
+               outlier.shape = 16,
+               outlier.size = 2.5,
+               position = position_identity()) +
+  labs(title = "Boxplot of Highway Mileage (hwy)",
+       x= "Highway Mileage (mpg)",
+       y= "") +
+  theme_minimal()
+
+```
+- Q4. Add labels to the bar graph as shown below. The labels represent the count of specific class cars in the mpg dataset. You could add labels using geom_text() function. Therefore, one way to recreate the bar graph with labels is to stack, geom_bar followed by geom_text. 
+- Hint: stat = "count" statistic for calculating the count of each class, should be used in the geom_text in case if you are trying to add the labels using the geom_text.
+
+```{r stacking_geoms}
+ggplot(data = mpg, mapping = aes(x = class)) +
+  geom_bar(fill = "darkgrey") +
+  geom_text(stat = "count", aes(label = after_stat(count)), vjust = -0.5) +
+  labs(x = "Car Class", y = "Count")
+
+```
+- Q5. Use scale_x_continuous to add a label to the x-axis. Aim for a closest possible replica of the provided graph.
+
+```{r scales1}
+
+ggplot(data = mpg, mapping = aes(x = displ, y = hwy, color = class, shape = drv)) +
+  geom_point() +
+  scale_x_continuous(name = 'Using "hwy" variable for Gas Mileage') +
+  labs(y = "hwy")
+
+
+```
+- Q6. Use lims function to limit the x variable displ to display only the vehicles between displ value of 1 to 6, and hwy vehicles with mileage between 10 and 40. Aim for a closest possible replica of the provided graph.
+
+```{r scales_limit}
+ggplot(data = mpg, mapping = aes(x = displ, y = hwy, 
+                                 color = class, shape = drv)) +
+  geom_point() +
+  lims(x = c(1, 6), y = c(10, 40)) +
+  labs(x = "displ", y = "hwy")
+
+```
+- Q7. Use facet_wrap or fact_grid on manufacturer variable to display scatter plot between variables x = displ and y = hwy. Aim for a closest possible replica of the provided graph.
+
+```{r facets1}
+
+
+ggplot(data = mpg, mapping = aes(x = displ, y = hwy, color = class, shape = drv)) +
+  geom_point() +
+  facet_wrap(~ manufacturer, ncol = 4) +
+  labs(x = "displ", y = "hwy")
+
+```
+- Q8. Create bar graph by class. Experiment with linetype argument and give a different outline color using color argument.
+
+```{r coordinate1-base}
+
+ggplot(data = mpg, mapping = aes(x = class, fill = drv)) +
+  geom_bar(color = "black", linetype = "dashed", position = position_dodge()) +
+  labs(x = "class", y = "COUNT")
+
+```
+- Q9. Use coord_flip on the graph from Question 8, Q8. and flip the coordinates 
+- Flip the coordinate 
+
+```{r}
+ggplot(data = mpg, mapping = aes(x = class, fill = drv)) +
+  geom_bar(color = "black", position = position_dodge()) +
+  labs(x = "class", y = "count") +
+  coord_flip()
+
+```
+- Q10. Use polar coordinates to create the graph.
+- Display the same graph on a polar coordinate system 
+
+```{r coordinate2}
+
+
+ggplot(data = mpg, mapping = aes(x = class, fill = drv)) +
+  geom_bar(color = "black", position = position_dodge()) +
+  labs(x = "class", y = "count") +
+  coord_polar("x") 
+
+```
