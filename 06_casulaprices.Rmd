@@ -1,0 +1,125 @@
+---
+title: "06_Casual_Analysis"
+author: "Alaia Rubio"
+date: "2025-03-14"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+###Load libraries 
+```{r}
+library(ggcorrplot)
+```
+
+
+###Step 1 = Read Data 
+
+```{r}
+houses <- read.csv("06_Regression_Boston_Housing_Prices.csv")
+
+```
+
+
+```{r}
+
+set.seed(1234)
+
+summary(houses) #NA values get dropped 
+
+
+
+```
+```{r}
+head(is.na(houses$AGE))
+
+
+summary(replace(houses$AGE,
+       is.na(houses$AGE),
+       0))
+
+houses_clean <- as.data.frame(lapply(houses,
+      FUN=function(x) {
+        replace(x, is.na(x),0)
+      } ))
+
+summary(houses_clean)
+
+
+
+```
+
+### Step 3 = Create the Model 
+
+```{r}
+position_vector <- sample(c("Train", "Test"), 506, 
+                          prob = c(0.8, 0.2),
+                          replace = TRUE)
+
+```
+- using positional_vector as reference, pull the rows from houses_clean as Train and Test Samples
+
+### Split the data 
+
+```{r}
+Train_dataset <- houses_clean[position_vector == "Train", ]
+Test_dataset <- houses_clean[position_vector == "Test", ]
+
+
+```
+
+
+- collinearity check 
+1. pairs
+2. ggpairs
+3.ggcorrplot
+
+```{r}
+correlation_matrix <- cor(houses_clean)
+
+ggcorrplot(correlation_matrix,
+           digits = 1,
+           lab = 2,
+           lab_size = 2)
+
+```
+
+
+###Step 4. = Make predictions using model 
+
+```{r}
+minimal_model <- lm(MEDV ~ 1, data = Train_dataset )
+final_model <- step(minimal_model,
+                    scope = ~ CRIM + ZN + INDUS + CHAS + NOX + RM + AGE + DIS + RAD + TAX + PTRATIO + B + LSTAT)
+
+summary(final_model)
+
+
+```
+
+#### Step 5 = calculate MSE 
+
+```{r}
+predictions <- predict(final_model,
+                  newdata = Test_dataset[c(-14)])
+
+head(predictions)
+```
+-calcualte the MSE 
+
+```{r}
+Test_dataset$predicted_output <- predictions
+test_MSE <- sum((Test_dataset$MEDV - 
+Test_dataset$predicted_output)^2)/(nrow(Test_dataset) - final_model$rank)
+test_MSE
+
+```
+
+
+```{r}
+#Train MSE
+sum((final_model$residuals^2))/(length(final_model$residuals)-10)
+```
+
