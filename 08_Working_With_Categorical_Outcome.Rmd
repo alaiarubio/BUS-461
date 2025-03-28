@@ -1,0 +1,188 @@
+---
+title: "Using Categorical Variables"
+author: "<Student Name>"
+date: "2025-03-20"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Classification - the target variable is categorical.
+
+The logistic regression could provide answers to the following questions: 
+1. Whether a particular stock's value will rise during the next trading cycle.
+2. A student is admitted to a school based on specific evaluation criteria. 
+3. The likelihood that a company will launch a new line of automobile next year.
+4. Whether or not a particular stock will pay a dividend this year.
+ 
+The likelihood modeled in the scenario 3 cannot be a continuous percentage such as: 
+1. The annual percentage gain on a specific stock.  
+
+The likelihood is modeled using an exponential function. 
+
+- Let the likelihood of a stock being bullish the next trading cycle be **p**.
+- Also, assume that the stock movement depends on factors X1, X2, and X3. Based on these three factors the stock receives a consensus score of Y as:
+
+$$
+Y = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \beta_2 X_3 
+$$
+
+- However, as the likelihood of investing depends on the probability that the score the stock receives is sufficient enough, which can be modeled as a sigmoid function between 0 and 1. The equation of sigmoid function is: 
+
+$$
+p = \frac{1}{1 + e^{-Y}} 
+$$
+
+#### Simulating a sigmoid function. 
+
+```{r sigmoid function}
+y <- rnorm(500, 0, 5)
+y <- sort(y)
+p <- 1/(1 + exp(-1*y))
+df <- data.frame(trial=seq(1,500), 
+                 y = y,
+                 probability = p)
+print(df[c(1:5, 495:500),])
+plot(x = seq(1,500), y = p, 
+     type="l", 
+     col = "blue")
+```
+
+
+- The same equation can be re-written as: 
+$$
+e^Y = \frac{p}{1 - p} 
+$$
+
+- Taking log on both the sides, we get: 
+$$
+Y = log(\frac{p}{1 - p}) 
+$$
+
+Therefore, what we are going to model in the logistic regression is: 
+$$
+Y = log(\frac{p}{1 - p}) = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \beta_2 X_3 
+$$
+
+As a linear function of a set of predictive variables X, the above model calculates the probability of success for the outcome variable Y. By including exponential terms from the predictor variables in both the numerator and denominator, the ratio is always positive. In addition, when the exponential term is small, the ratio approaches zero. The ratio increases as the value of the exponential term increases. When the exponential term has a very large value, the ratio approaches one. By doing so, we ensure that the function accurately models that probability. The increase in log odds for a unit increase in X is represented by beta terms. Logistic regression is different from linear regression. The target variable is directly related to the predictor variables in linear regression. A logistic regression takes a probabilistic view of two binary variable outcomes and relates the log odds of one outcome to a linear function of the predictor variables.
+
+
+```{r, read data}
+bankData <- read.csv("08_Logit_bank-full (1).csv", sep = ";")
+summary(bankData)
+
+```
+
+- From the above summary statistics, we can confirm that there are no missing values in any variable. There are 45,211 observations in the dataset. The output variable (DV) is a character value.
+
+The output variable has only two possibilities and the frequency can be displayed using the table function. However, the character output is not suitable for regression analysis. Therefore, to fit the logistic regression model, this output variable should be converted to a numeric 0 and 1 variable.
+
+**Note:** This requirement is for pure statistical packages such as glm.
+
+```{r}
+table(bankData$y)
+```
+
+```{r}
+bankData$y <- ifelse(bankData$y == "yes", 1, 0)
+```
+
+- Now it is time to explore other chatagorical variable (Non-numerical) to see what possible values exist for each of these variables.
+
+```{r}
+cateorical_variables <- !sapply(bankData, FUN=is.numeric)
+lapply(bankData[,cateorical_variables], table)
+```
+- Month looks like a irrelevant feature. We can drop it. 
+
+
+```{r}
+library(dplyr)
+bankData <- bankData %>%
+  select(-day, -month) # Exclude data 
+  
+```
+
+- Data cleaning to adjsut levels 
+```{r}
+table(bankData$job)
+
+order_of_levels <- c("unknown", "unemployed", "housemaid", "student", "retired", "self-employed","blue-collar",
+  "technician", "admin.", "services", "entrepeneur", "management")
+bankData$job <- factor(bankData$job,
+                       levels = order_of_levels)
+```
+
+-split data into train and test 
+```{r}
+set.seed(1234)
+train_test_split <- sample(c("Tr", "Te"), size = nrow(bankData),
+                           prob = c(0.8, 0.2), replace = T)
+train <- bankData[train_test_split == "Tr", ]
+test <- bankData[train_test_split == "Te", ]
+```
+
+
+-Create the model 
+```{r}
+model <- glm(y ~ .,
+             family = binomial(),
+             data = train)
+
+summary(model)
+
+```
+
+
+```{r}
+odds_ratios <- exp(model$coefficients)
+
+```
+
+-make predictions using test data set
+```{r}
+predictions <- predict(model, test, 
+                       type = "response")
+
+head(predictions)
+#convert probabilites into 0 and 1 based on 50% benchmark 
+#if more than 50% then it is "yes" or "no"
+
+test$predicted_outcome <- ifelse(predictions > 0.5, 1, 0)
+table(test$y, test$predicted_outcome)
+
+
+```
+
+
+```{r}
+#confusion matrix
+
+confusion_matrix <- as.data.frame(table(test$y, test$predicted_outcome))
+names(confusion_matrix) <- c("Actual", "Predicted", "Frequency")
+confusion_matrix
+
+```
+
+
+```{r}
+library(ggplot2)
+
+ggplot(confusion_matrix) +
+  geom_tile(aes(Actual, Predicted), fill = c("green", "red", "red",
+                                          "green")) +
+  geom_text(aes(Actual, Predicted, label = Frequency))
+```
+
+
+
+
+
+
+
+
+
+
