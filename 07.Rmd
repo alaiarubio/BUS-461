@@ -1,0 +1,89 @@
+---
+title: "07-class"
+author: "Alaia Rubio"
+date: "2025-03-30"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Step 1 read the data
+
+```{r}
+housing_data <- read.csv("06_Regression_Boston_Housing_Prices.csv")
+```
+```{r}
+summary(housing_data)
+```
+
+```{r}
+#replace missing values with zeros
+print(head(housing_data$AGE, 20))
+print(head(
+  replace(housing_data$AGE, is.na(housing_data$AGE), 0),
+  20))
+
+housing_clean <- as.data.frame(lapply(housing_data,
+                                      FUN = function(x) {
+                                        replace(x, is.na(x), 0)}))
+
+```
+## Step 2 clean the data
+```{r}
+summary(housing_clean)
+```
+## step 3 Correlation analysis
+```{r}
+library(ggcorrplot)
+ggcorrplot(cor(housing_clean,
+               lab = T,
+               lab_size = 2))
+```
+
+
+
+
+## Step 4 create train and test samples
+```{r}
+indexes <- sample(c("Tr", "Te"), size = nrow(housing_clean),
+                  prob = c(0.7,0.3),
+                  replace = T)
+Train <- housing_clean[indexes == "Tr", ]
+Test <- housing_clean[indexes == "Te", ]
+```
+
+## Step 5 Ridge regression on Train sample
+```{r}
+install.packages("caret")
+library(caret)
+training_parameters <- trainControl(method = "repeatedcv",
+                                    number = 10, 
+                                    repeats = 5,
+                                    verboseIter = F)
+
+ridge_model <- train(MEDV ~., 
+                data = train,
+                method = 'glmnet',
+                tuneGrid = expand.grid(alpha = 0, 
+                                       lambda = seq(0, 5, length = 50)),
+                trControl = training_parameters
+)
+ridge_model
+                
+
+```
+
+## Step 6: Predict outcome
+```{r}
+predictions <- predict(ridge_model, Test)
+Test$Predicted_Outcome <- predictions
+test_MSE <- sum((Test$MEDV - Test$predicted_output)^2)/(nrow(Test) - 12)
+test_MSE
+```
+
+```{r}
+ridge_model$bestTune
+```
