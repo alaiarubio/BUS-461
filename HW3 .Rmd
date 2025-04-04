@@ -1,0 +1,214 @@
+---
+title: "HW 3"
+author: "Alaia Rubio"
+date: "2025-03-31"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+###Load libraries 
+```{r}
+library(ggcorrplot)
+library(dplyr)
+library(caret)
+library(tidyr)
+
+```
+
+
+```{r}
+housing_sales_data <- read.csv("train.csv")
+```
+
+```{r}
+set.seed(1234)
+
+summary(housing_sales_data) #NA values get dropped 
+```
+
+#Data cleaning 
+```{r}
+
+housing_sales_clean <- housing_sales_data %>%
+  mutate(across(where(is.numeric), ~ replace_na(.x, 0))) %>%
+  select(Neighborhood, OverallQual, KitchenQual, GrLivArea, GarageCars, X1stFlrSF, YearBuilt, LotArea, BedroomAbvGr, X2ndFlrSF , MSSubClass, SalePrice)
+
+summary(housing_sales_clean)
+```
+
+
+```{r}
+position_vector <- sample(c("Train", "Test"), nrow(housing_sales_clean), 
+                          prob = c(0.7, 0.3), replace = TRUE)
+
+Train_dataset <- housing_sales_clean[position_vector == "Train", ]
+Test_dataset <- housing_sales_clean[position_vector == "Test", ]
+```
+
+
+```{r}
+correlation_matrix <- cor(Train_dataset %>% select(where(is.numeric)))
+
+ggcorrplot(correlation_matrix,
+           digits = 1,
+           lab = TRUE,
+           lab_size = 2)+
+  theme(axis.text.x = element_text(size = 6),  
+        axis.text.y = element_text(size = 7))
+
+
+```
+The correlation matrix shows a strong positive correlation between a few predictor variables, especially the variables that are related to house size and quality, this shows there is potential multicollinearity. 
+
+
+```{r}
+minimal_model <- lm(SalePrice ~ 1, data = Train_dataset)
+final_model <- step(minimal_model, 
+                    scope = ~ Neighborhood + OverallQual + KitchenQual + GrLivArea + GarageCars + X1stFlrSF + YearBuilt + LotArea + BedroomAbvGr + X2ndFlrSF + MSSubClass)
+summary(final_model)
+```
+
+Regression model shows approximately 84.6% of the variation in the house sale price is impacted by the chosen predictors, which have statistically signifacnt coefficient such as overall quality, living area, and neighboroughood. The standard errors for these coefficients show the uncertainty in their impact on sale price. Teh standarde errors for the neighborurhood and garage cars seems to be the lowest which show a more relaiable and precise estimate. 
+
+```{r}
+predictions <- predict(final_model, newdata = Test_dataset)
+
+
+Test_dataset$predicted_output <- predictions
+```
+
+```{r}
+test_MSE <- sum((Test_dataset$SalePrice - Test_dataset$predicted_output)^2) / (nrow(Test_dataset) - final_model$rank)
+
+test_MSE
+
+```
+
+```{r}
+train_MSE <- sum((final_model$residuals^2)) / (length(final_model$residuals) - final_model$rank)
+train_MSE
+```
+
+```{r}
+
+training_parameters <- trainControl(method = "repeatedcv", 
+                                    number = 10, 
+                                    repeats = 5, 
+                                    verboseIter = FALSE)
+
+ridge_model <- train(SalePrice ~ ., 
+                     data = Train_dataset,
+                     method = 'glmnet',
+                     tuneGrid = expand.grid(alpha = 0, 
+                                            lambda = seq(0, 5, length = 50)),
+                     trControl = training_parameters)
+
+ridge_model
+
+```
+
+Using the MSE i was able to identify that the ridge model was better as there was a lower MSE, i did this by using an if function that printed "ridge is better" if the MSE was lower out of the regression and the ridge model. 
+
+To make my model, i tested many different variables until i had an r square that was around 85%, which i did achieve. I did this by seeing which vairbale would make the most sense and which is more logically would have more of an impact on sales price. I also looked at the coefficients to see which ones were lower that i could replace in order to acheive a higher r square. 
+
+
+```{r}
+predictions_ridge <- predict(ridge_model, newdata = Test_dataset)
+
+
+Test_dataset$predicted_output_ridge <- predictions_ridge
+```
+
+
+```{r}
+test_MSE_ridge <- sum((Test_dataset$SalePrice - Test_dataset$predicted_output_ridge)^2) / (nrow(Test_dataset) - final_model$rank)
+
+test_MSE_ridge
+```
+
+```{r}
+if(test_MSE_ridge<test_MSE) {
+  print("ridge is better")
+} else {
+  print("regular final model is better")
+}
+
+
+```
+
+```{r}
+Test_dataset_with_id <- housing_sales_data %>%
+  select(Id) %>%
+  slice(which(position_vector == "Test"))
+
+submission <- data.frame(
+  Id = Test_dataset_with_id$Id,
+  SalePrice = if (test_MSE_ridge < test_MSE) {
+    Test_dataset$predicted_output_ridge
+  } else {
+    Test_dataset$predicted_output
+  }
+)
+
+write.csv(submission, "my_submission.csv", row.names = FALSE)
+
+head(submission)
+```
+
+
+```{r}
+#Normally distributed residuals
+hist(final_model$residuals, main = "Histogram of Residuals (finalmode)")
+qqnorm(final_model$residuals)
+qqline(final_model$residuals)
+
+
+ridge_predictions <- predict(ridge_model, newdata = Train_dataset)
+ridge_residuals <- Train_dataset$SalePrice - ridge_predictions
+hist(ridge_residuals, main = "Histogram of Residuals (Ridge)")
+qqnorm(ridge_residuals)
+qqline(ridge_residuals)
+```
+The histogram shows residuals that are centred around zero, but the shape and the S shaped curve in the Q-Q plot show that the residuals are not perfectly normally distributed. There is a higher concentration of small errors and more frequent large errors when looking at the tails than what we would like to see under a normal distribution.So the model is overall fairly unbaised however there is a violation which could affect the reliability of statisctial decision making. 
+
+
+```{r}
+#Absence of heteroskedasticity 
+
+plot(final_model$fitted.values,
+     final_model$residuals,
+     main = "Residuals vs. Fitted Values ( Regression)",
+     xlab = "Fitted Values (Predicted Sale Price)",
+     ylab = "Residuals (Actual - Predicted Sale Price)")
+
+abline(h = 0, col = "red", lty = 2)
+
+```
+The plot shows that there is a presence of heteroskedasticity, the vertical spread of the residuals seems to be increasing as the predicted sales price (fitted) increase. So, the variance of the prediction errors is not constant. 
+
+
+```{r}
+#Independence of residuals 
+
+plot(1:length(final_model$residuals), final_model$residuals,
+     main = "Residuals vs. Order of Observation",
+     xlab = "Order of Observation",
+     ylab = "Residuals")
+abline(h = 0, col = "red", lty = 2)
+
+plot(1:length(ridge_residuals), ridge_residuals,
+     main = "Residuals vs. Order of Observation (Ridge Regression)",
+     xlab = "Order of Observation",
+     ylab = "Residuals (Ridge)")
+abline(h = 0, col = "blue", lty = 2)
+
+```
+No strong evidence to reject the assumption of indepedent residuals, it seems random with no clear trend or cyclical pattern. 
+
+
+
+
