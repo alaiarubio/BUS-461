@@ -1,0 +1,221 @@
+---
+title: "10_Decision Making Through Probabilities"
+author: "<Include your name>"
+date: "2025-03-25"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#### Probability and Simulations 
+
+Data and its applications aren't always what they seem in an increasingly data-driven world. The purpose of this markdown document is to present two scenarios in which decision makers can use probability and simulations to gain insight into a business problem under uncertainty. The method can be applied to a wide range of business scenarios. For example, how can you forecast fraudulent activity through a new type of fraud when there have been no reported money losses in the past (New Fraud going on in the market)? How can you predict how many people will be resistant to bacterial infections in a country with a significant amount of missing national data? Or how about estimating how long it will take to evacuate people in flood-prone areas? In situations like these, approximations based on expert opinions are required to address complex decision-making problems. This markdown file will demonstrate the fundamentals of various techniques for framing a business context and quantifying uncertainty using expert opinion. 
+
+
+- **Inventory Management Problem** 
+
+> Kroger purchases perishable food items (meat products) for $27.50 per unit, then sells them for $40.00, making a profit of $12.50 on one pack of 10 lbs meat. However, if they do not sell the meat products by the best before quality deadlines, they can return the product for a $8.50 credit. The challenge in this case is that the inventory manager at the Kroger retailer store, want to determine how many packs of meat to order based on what the anticipated the level of demand to be. The experts at the store have captured the historical level of demand.
+
+
+Demand in tons | Probability | Cumulative Probability 
+---- | ---- | ----
+100 | 0.15 | 0
+150 | 0.24 | 0.15
+175 | 0.16 | 0.39 
+225 | 0.25 | 0.55 
+350 | 0.15 | 0.80 
+400 | 0.05 | 0.95 
+
+- The problem at hand is determining how many packs of meat should be ordered ahead of time to maximize profit. 
+- Use Monte Carlo Simulation to solve the problem. 
+
+```{r}
+demand_probs <- data.frame(demand = c(100, 150, 175, 225, 350, 400),
+                           prob = c(0.15, 0.24, 0.16, 0.25, 0.15, 0.05),
+                           low_prob = c(0, 0.15, 0.39, 0.55, 0.80, 0.95),
+                           upper_prob = c(0.15,0.39, 0.55, 0.80, 0.95, 1.0 ))
+
+
+demand_probs
+```
+```{r}
+expected_value_demand <- sum(demand_probs$demand*demand_probs$prob)
+expected_value_demand
+```
+
+-Test if 208 packets is a optimal quantity by simulating 1000 sample demands 
+```{r}
+
+sample_data <- data.frame(sample_probabilities = runif(1000))
+sample_data$demand <- 0
+head(sample_data)
+```
+
+```{r}
+for(i in 1:nrow(sample_data)){
+  p <- sample_data[i, "sample_probabilites"]
+  sample_data[i, "demand"] <- demand_probs[(p > demand_probs$low_prob)
+                                           &(p < demand_probs$upper_prob),
+"demand"][[1]]
+}
+
+head(sample_data)
+
+```
+-Add profit or loss
+```{r}
+sample_data$profit_loss <- 0 
+#if actual demand is greater than ordered quantity, then profit+loss= profit/unit * ordered_quantity 
+
+```
+
+
+## Probability Distribution Functions 
+
+- Normal Distribution 
+
+**Q1. Please write in your own words what is the purpose of each of the below functions. **
+- rnorm() = generating random samples from a normal distribution
+- dnorm() = gives the value of the probability density function
+- pnorm() = returns the value of the cumulative density function 
+- qnorm() = returns the value of the inverse cumulative density function
+
+
+```{r Q2. normal_distribution}
+set.seed(1234)
+# Create a vector of 1000 random normal numbers with a mean of 5 and standard deviation of 1.5. Name this as human_water_consumption. Assuming that this 1000 sample vector is taken from the global water consumption vector.  
+human_water_consumption <- rnorm(1000, mean = 5, sd = 1.5)
+head(human_water_consumption)
+# Plot the normal distribution as a density plot (This should be nothing but a bell curve!)
+
+
+# Approach - 1
+# Use base plot ()
+x <- sort(human_water_consumption)
+y <- dnorm(x, mean = 5, sd = 1.5)
+plot(x, y, ylab = "density of water consumption")
+
+# Approach - 2
+# Use geom_density (No need to calculate the densities separately)
+library(ggplot2)
+ggplot(data.frame(human_water_consumption)) +
+  geom_density(aes(x = human_water_consumption))
+
+```
+
+
+```{r Q3. Density_Value}
+# What is the global water consumption density for 1 liter of water? 
+dnorm(1, 5, 1.5)
+
+# What is the global water consumption density for 5 liters of water? 
+dnorm(5, 5, 1.5)
+# Which density value is high? Provide your interpretation. 
+#Density of 5 litres as the higher the mean the higher the density.
+
+```
+
+
+```{r Q4. lower.tail_upper.tail}
+# What is the average water consumption of bottom 25% of population?  
+qnorm(0.25, 5, 1.5)
+
+# What is the average water consumption of top 25% of population?  
+qnorm(0.75, 5, 1.5)
+
+```
+
+
+```{r Q5. probability_of_drinking_n_liters}
+# What percentage of population drinks less than 2 liters of water a day?   
+pnorm(2, 5, 1.5)
+
+# What proportion of the population consumes 7 liters or more of water per day?
+1- pnorm(7, 5, 1.5)
+```
+
+
+``` {r Q6. random_winning_rate_prediction}
+# Create a 100-person sample from a group of sports bettors predicting the number of titles Andy Murray will win in the next 10 tournaments. Assume that his current title-winning percentage is 0.25. Save the output to murray_win_rate and print the first 10 elements. 
+
+head(rbinom(100, 10, 0.25), 10)
+
+# Create a histogram using the murray_win_rate sample prediction. 
+hist(rbinom(100, 10, 0.25), 10)
+
+```
+
+
+**Scenario:** You're stuck in traffic and become curious about how many cars typically pass a red light before it turns green. While waiting, you count the number of vehicles that go through the light for an extended period (let's say over a hundred days). On average, you observe that around five cars pass the light during each cycle.
+
+**A friend suggests something interesting:** They believe that if you randomly pick a red light cycle to observe, there's a high chance the number of cars passing through will be somewhere between a minimum of one car to a maximum of forty cars. They suggest the Poisson distribution might be a good way to model this situation.
+
+
+``` {r Q7. Poisson_Distribution}
+
+# Create a vector of sample sizes ranging from 1 to 40 incrementing by 1. 
+# Capture Poisson densities for these 40 samples. Hint: Use dpois() function. You need to pass the sample size and the sample mean of 5 cars. 
+
+rpois(10, 7) 
+
+# Draw the Poisson densities plot
+df<- data.frame(x = seq(1:40), y = dpois(seq(1:40), 5))
+plot(x = df$x,y = df$y, type = "l", col = "red")
+
+
+
+```
+
+
+``` {r Q8. Interpreting_Poisson_Densities}
+# Please provide interpretations for the below plots. 
+library(ggplot2)
+success_samples <- seq(1, 40, 1)
+densities_with_mean1 <- dpois(success_samples, 1)
+densities_with_mean5 <- dpois(success_samples, 5)
+densities_with_mean10 <- dpois(success_samples, 10)
+
+ggplot(data.frame(x=success_samples), aes(x)) +
+  geom_line(aes(y=densities_with_mean1), colour="red") +
+  geom_line(aes(y=densities_with_mean5), colour="blue") +
+  geom_line(aes(y=densities_with_mean10), colour="green")
+
+```
+
+
+
+**Scenario:** Imagine you're buying a batch of light bulbs, and the manufacturer claims they have an average lifespan of 1000 hours. You're interested in simulating how long each bulb might last before burning out.
+
+**The Exponential Fit:**
+
+The exponential distribution is a good fit for modeling lifespans of components like light bulbs because failures are random and independent events. The rate of failure increases as the bulb ages (although the model assumes a constant rate for simplicity).
+
+Using *rexp()* for Bulb Lifespans:
+
+The rate parameter represents the rate of bulb failure, which is inversely proportional to the average lifespan.
+
+```{r}
+# Average lifespan of the bulb (hours)
+average_lifespan <- 1000
+
+# Failure rate (lambda) - inverse of average lifespan
+failure_rate <- 1 / average_lifespan
+
+# Simulate lifespans for 200 bulbs
+bulb_lifespans <- rexp(n = 200, rate = failure_rate)
+
+# Print some lifespans (in hours)
+head(bulb_lifespans)
+```
+
+```{r}
+# Create the density plot
+ggplot(as.data.frame(bulb_lifespans)) +
+  geom_density(aes(x=bulb_lifespans), fill = "lightblue") +  
+  labs(title = "Bulb Lifespans - Density Plot",
+       x = "Lifespan (hours)",
+       y = "Density")
+```
+
